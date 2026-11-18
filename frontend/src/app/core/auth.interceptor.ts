@@ -1,0 +1,3 @@
+import { HttpInterceptorFn } from '@angular/common/http';
+/** Attaches an existing access token only. Authorization decisions always remain server-side. */
+export const authInterceptor:HttpInterceptorFn=(request,next)=>{const token=sessionStorage.getItem('pa_access_token');return token&&request.url.startsWith('/api/')?next(request.clone({setHeaders:{Authorization:`Bearer ${token}`}})):next(request);};
