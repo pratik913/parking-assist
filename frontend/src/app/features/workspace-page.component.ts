@@ -1,0 +1,184 @@
+import { Component, computed, inject } from "@angular/core";
+import { ActivatedRoute, RouterLink } from "@angular/router";
+type Role = "driver" | "resident" | "operator" | "admin";
+@Component({
+  selector: "pa-workspace",
+  standalone: true,
+  imports: [RouterLink],
+  template: `<section class="page workspace">
+    <span class="eyebrow">{{ label() }} workspace</span>
+    <h1>Good to see you.</h1>
+    <p class="muted">
+      Your account-specific workspace is ready for API integration.
+    </p>
+    <div class="card notice">
+      <b>Workspace foundation</b>
+      <p>
+        Live bookings, earnings, occupancy and administration actions will be
+        displayed only after secure authentication and backend integration.
+      </p>
+    </div>
+    <div class="grid">
+      @for (item of cards(); track item.title) {
+        <article class="card">
+          <span>{{ item.icon }}</span>
+          <h2>{{ item.title }}</h2>
+          <p>{{ item.description }}</p>
+          <small>{{ item.status }}</small>
+        </article>
+      }
+    </div>
+    <a class="btn outline" routerLink="/discover">Back to discovery</a>
+  </section>`,
+  styles: [
+    `
+      .workspace {
+        padding: 55px 0;
+        min-height: 530px;
+      }
+      .workspace h1 {
+        font: 800 36px Manrope;
+        letter-spacing: -1px;
+        margin: 10px 0;
+      }
+      .notice {
+        padding: 20px;
+        background: #f0f7f3;
+        box-shadow: none;
+      }
+      .notice p,
+      .grid p {
+        font-size: 12px;
+        line-height: 1.6;
+        color: #718096;
+      }
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 15px;
+        margin: 22px 0;
+      }
+      .grid article {
+        padding: 22px;
+        box-shadow: none;
+      }
+      .grid article > span {
+        font-size: 22px;
+      }
+      .grid h2 {
+        font: 700 17px Manrope;
+      }
+      .grid small {
+        color: #176b55;
+        font-size: 10px;
+        font-weight: 700;
+      }
+      @media (max-width: 700px) {
+        .grid {
+          grid-template-columns: 1fr;
+        }
+      }
+    `,
+  ],
+})
+export class WorkspacePageComponent {
+  private readonly route = inject(ActivatedRoute);
+  readonly role = (this.route.snapshot.paramMap.get("role") ??
+    "driver") as Role;
+  readonly label = computed(
+    () =>
+      (
+        ({
+          driver: "Driver",
+          resident: "Resident",
+          operator: "Public parking operator",
+          admin: "Platform admin",
+        }) as Record<string, string>
+      )[this.role] ?? "User",
+  );
+  readonly cards = computed(() => {
+    if (this.role === "resident")
+      return [
+        {
+          title: "My spaces",
+          icon: "▦",
+          description: "Manage listings and availability.",
+          status: "Listing API pending",
+        },
+        {
+          title: "Occupancy",
+          icon: "◉",
+          description: "Review current and upcoming use.",
+          status: "Occupancy API pending",
+        },
+        {
+          title: "Earnings",
+          icon: "₹",
+          description: "Review settlements and payouts.",
+          status: "Payout API pending",
+        },
+      ];
+    if (this.role === "operator")
+      return [
+        {
+          title: "Facilities",
+          icon: "▦",
+          description: "Manage authorized public facilities.",
+          status: "Verification API pending",
+        },
+        {
+          title: "Capacity",
+          icon: "◉",
+          description: "Monitor reported capacity.",
+          status: "Occupancy API pending",
+        },
+        {
+          title: "Tariffs",
+          icon: "₹",
+          description: "Maintain parking tariffs.",
+          status: "Pricing API pending",
+        },
+      ];
+    if (this.role === "admin")
+      return [
+        {
+          title: "Verification queue",
+          icon: "✓",
+          description: "Review evidence and authorization.",
+          status: "Admin API pending",
+        },
+        {
+          title: "Platform health",
+          icon: "⌁",
+          description: "Monitor service operations.",
+          status: "Observability pending",
+        },
+        {
+          title: "Disputes",
+          icon: "⚑",
+          description: "Review reported issues.",
+          status: "Support API pending",
+        },
+      ];
+    return [
+      {
+        title: "My bookings",
+        icon: "◷",
+        description: "Review upcoming and past reservations.",
+        status: "Booking API pending",
+      },
+      {
+        title: "Vehicles",
+        icon: "▱",
+        description: "Manage vehicles for faster checkout.",
+        status: "Profile API pending",
+      },
+      {
+        title: "Account security",
+        icon: "⌑",
+        description: "Manage profile and sign-in security.",
+        status: "Identity API pending",
+      },
+    ];
+  });
+}

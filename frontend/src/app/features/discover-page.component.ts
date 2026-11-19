@@ -1,0 +1,403 @@
+import { Component, computed, signal } from "@angular/core";
+import { FormsModule } from "@angular/forms";
+import { ActivatedRoute, RouterLink } from "@angular/router";
+type Kind = "PRIVATE" | "PUBLIC_AUTHORIZED";
+interface Listing {
+  id: string;
+  name: string;
+  locality: string;
+  city: string;
+  kind: Kind;
+  rate: number;
+  distance: number;
+  rating: number;
+  reviews: number;
+  availability: string;
+  features: string[];
+  image: string;
+}
+const PREVIEW: readonly Listing[] = [
+  {
+    id: "sample-1",
+    name: "Green Park Residency",
+    locality: "Hinjawadi",
+    city: "Pune",
+    kind: "PRIVATE",
+    rate: 30,
+    distance: 0.4,
+    rating: 4.8,
+    reviews: 42,
+    availability: "Available",
+    features: ["Covered", "CCTV listed", "24/7 access"],
+    image:
+      "https://images.unsplash.com/photo-1590674899484-d5640e854abe?auto=format&fit=crop&w=900&q=80",
+  },
+  {
+    id: "sample-2",
+    name: "Central Plaza Parking",
+    locality: "Baner",
+    city: "Pune",
+    kind: "PUBLIC_AUTHORIZED",
+    rate: 50,
+    distance: 0.8,
+    rating: 4.6,
+    reviews: 118,
+    availability: "Limited spaces",
+    features: ["EV charging", "Security desk"],
+    image:
+      "https://images.unsplash.com/photo-1506529934140-6a7b2a7a6b2b?auto=format&fit=crop&w=900&q=80",
+  },
+  {
+    id: "sample-3",
+    name: "Orchid Business Hub",
+    locality: "Wakad",
+    city: "Pune",
+    kind: "PRIVATE",
+    rate: 25,
+    distance: 1.2,
+    rating: 4.5,
+    reviews: 27,
+    availability: "Available",
+    features: ["Covered", "Wide bays"],
+    image:
+      "https://images.unsplash.com/photo-1573348722427-f1d6819fdf98?auto=format&fit=crop&w=900&q=80",
+  },
+];
+@Component({
+  selector: "pa-discover",
+  standalone: true,
+  imports: [FormsModule, RouterLink],
+  template: `<section class="page discover">
+    <div class="heading">
+      <div>
+        <span class="eyebrow">Explore parking</span>
+        <h1>Find your <em>space.</em></h1>
+        <p class="muted">Compare verified listings around your destination.</p>
+      </div>
+      <span class="sample">UI preview · sample listings</span>
+    </div>
+    <form class="card filters" (ngSubmit)="apply()">
+      <label class="field"
+        >Destination<input
+          name="location"
+          [(ngModel)]="location"
+          placeholder="Area, landmark or address" /></label
+      ><label class="field"
+        >Vehicle<select name="vehicle" [(ngModel)]="vehicle">
+          <option value="FOUR_WHEELER">Car</option>
+          <option value="TWO_WHEELER">Two-wheeler</option>
+        </select></label
+      ><label class="field"
+        >Parking type<select name="kind" [(ngModel)]="kind">
+          <option value="ALL">All types</option>
+          <option value="PRIVATE">Private space</option>
+          <option value="PUBLIC_AUTHORIZED">Authorized public</option>
+        </select></label
+      ><button class="btn primary">Update search</button>
+    </form>
+    <div class="layout">
+      <div class="results">
+        <b>{{ filtered().length }} preview options</b>
+        @for (item of filtered(); track item.id) {
+          <article class="listing card">
+            <img [src]="item.image" [alt]="item.name" loading="lazy" />
+            <div class="body">
+              <small
+                >✓ Verified preview ·
+                {{
+                  item.kind === "PRIVATE"
+                    ? "Private space"
+                    : "Authorized public"
+                }}</small
+              >
+              <h2>{{ item.name }}</h2>
+              <p>{{ item.locality }}, {{ item.city }}</p>
+              <div class="facts">
+                <span>⌖ {{ item.distance }} km</span
+                ><span>★ {{ item.rating }} ({{ item.reviews }})</span
+                ><span>{{ item.availability }}</span>
+              </div>
+              <div class="tags">
+                @for (f of item.features; track f) {
+                  <span>{{ f }}</span>
+                }
+              </div>
+            </div>
+            <div class="price">
+              <b>₹{{ item.rate }}</b
+              ><small>/ hour</small
+              ><a class="btn outline" [routerLink]="['/parking', item.id]"
+                >View space</a
+              >
+            </div>
+          </article>
+        }
+        @if (filtered().length === 0) {
+          <div class="card empty">
+            No matching preview listings. Try another parking type.
+          </div>
+        }
+      </div>
+      <aside class="map card">
+        <b>Area overview</b>
+        <div class="map-art">
+          <span class="pin p1">P</span><span class="pin p2">P</span
+          ><span class="pin p3">P</span><span class="you">Destination</span>
+        </div>
+        <small
+          >Live map pins, routes and verified entrances will be added with the
+          Maps integration.</small
+        >
+      </aside>
+    </div>
+  </section>`,
+  styles: [
+    `
+      .discover {
+        padding: 48px 0;
+      }
+      .heading {
+        display: flex;
+        justify-content: space-between;
+        align-items: end;
+        margin-bottom: 25px;
+      }
+      h1 {
+        font: 800 42px Manrope;
+        letter-spacing: -1.6px;
+        margin: 9px 0;
+      }
+      h1 em {
+        font-style: normal;
+        color: #176b55;
+      }
+      .heading p {
+        margin: 0;
+      }
+      .sample {
+        background: #fff2dd;
+        color: #875718;
+        border-radius: 8px;
+        padding: 9px 12px;
+        font-size: 11px;
+      }
+      .filters {
+        padding: 16px;
+        display: grid;
+        grid-template-columns: 2fr 1fr 1fr auto;
+        gap: 12px;
+        align-items: end;
+        box-shadow: none;
+      }
+      .layout {
+        display: grid;
+        grid-template-columns: 1.4fr 0.8fr;
+        gap: 20px;
+        margin-top: 22px;
+      }
+      .results {
+        display: grid;
+        gap: 13px;
+        align-content: start;
+      }
+      .listing {
+        padding: 12px;
+        display: grid;
+        grid-template-columns: 155px 1fr auto;
+        gap: 15px;
+        box-shadow: none;
+      }
+      .listing img {
+        width: 155px;
+        height: 155px;
+        object-fit: cover;
+        border-radius: 11px;
+      }
+      .body small {
+        font-size: 10px;
+        color: #176b55;
+        font-weight: 700;
+      }
+      .body h2 {
+        font: 700 18px Manrope;
+        margin: 9px 0 4px;
+      }
+      .body p {
+        font-size: 12px;
+        color: #718096;
+        margin: 0;
+      }
+      .facts,
+      .tags {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 9px;
+        margin-top: 12px;
+        font-size: 10px;
+        color: #506176;
+      }
+      .tags span {
+        background: #f1f5f3;
+        padding: 5px 7px;
+        border-radius: 5px;
+      }
+      .price {
+        display: flex;
+        flex-direction: column;
+        align-items: flex-end;
+        justify-content: space-between;
+      }
+      .price b {
+        font: 800 22px Manrope;
+      }
+      .price small {
+        color: #8190a0;
+      }
+      .price .btn {
+        min-height: 34px;
+        padding: 0 9px;
+        font-size: 11px;
+      }
+      .map {
+        height: 420px;
+        padding: 17px;
+        box-shadow: none;
+        position: sticky;
+        top: 95px;
+      }
+      .map-art {
+        height: 320px;
+        margin: 14px -17px;
+        background-color: #e9eee7;
+        background-image:
+          linear-gradient(
+            35deg,
+            transparent 48%,
+            #d0dcd2 49%,
+            #d0dcd2 51%,
+            transparent 52%
+          ),
+          linear-gradient(
+            120deg,
+            transparent 48%,
+            #d0dcd2 49%,
+            #d0dcd2 51%,
+            transparent 52%
+          );
+        background-size: 90px 90px;
+        position: relative;
+      }
+      .pin {
+        position: absolute;
+        background: #176b55;
+        color: white;
+        width: 32px;
+        height: 32px;
+        border-radius: 50% 50% 50% 5px;
+        transform: rotate(-45deg);
+        display: grid;
+        place-items: center;
+      }
+      .p1 {
+        left: 20%;
+        top: 20%;
+      }
+      .p2 {
+        right: 20%;
+        top: 45%;
+      }
+      .p3 {
+        left: 48%;
+        bottom: 18%;
+      }
+      .you {
+        position: absolute;
+        left: 36%;
+        top: 60%;
+        background: white;
+        padding: 7px;
+        border-radius: 6px;
+        font-size: 10px;
+      }
+      .map > small {
+        color: #8190a0;
+        font-size: 10px;
+        line-height: 1.5;
+      }
+      .empty {
+        padding: 35px;
+        text-align: center;
+      }
+      @media (max-width: 950px) {
+        .layout {
+          grid-template-columns: 1fr;
+        }
+        .map {
+          position: static;
+          order: -1;
+          height: 300px;
+        }
+        .map-art {
+          height: 205px;
+        }
+        .filters {
+          grid-template-columns: 1fr 1fr;
+        }
+      }
+      @media (max-width: 600px) {
+        .heading {
+          align-items: flex-start;
+          flex-direction: column;
+          gap: 10px;
+        }
+        h1 {
+          font-size: 34px;
+        }
+        .filters {
+          grid-template-columns: 1fr;
+        }
+        .listing {
+          grid-template-columns: 1fr;
+        }
+        .listing img {
+          width: 100%;
+          height: 170px;
+        }
+        .price {
+          flex-direction: row;
+          align-items: center;
+          justify-content: flex-start;
+          gap: 8px;
+        }
+        .price .btn {
+          margin-left: auto;
+        }
+      }
+    `,
+  ],
+})
+export class DiscoverPageComponent {
+  location = "";
+  vehicle = "FOUR_WHEELER";
+  kind = "ALL";
+  private readonly data = signal(PREVIEW);
+  filtered() {
+    const term = this.location.trim().toLowerCase();
+    return this.data().filter(
+      (x) =>
+        (this.kind === "ALL" || x.kind === this.kind) &&
+        (!term ||
+          [x.name, x.locality, x.city].some((value) =>
+            value.toLowerCase().includes(term),
+          )),
+    );
+  }
+  constructor(route: ActivatedRoute) {
+    this.location = route.snapshot.queryParamMap.get("location") ?? "";
+    this.vehicle =
+      route.snapshot.queryParamMap.get("vehicle") ?? "FOUR_WHEELER";
+  }
+  apply() {
+    /* Connect to typed discovery API when backend contract is implemented. */
+  }
+}
